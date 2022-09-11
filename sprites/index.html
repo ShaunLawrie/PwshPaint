@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PwshSprites</title>
+    <style>
+      html {
+        font-family: monospace;
+        color: #fff;
+        background: #222;
+      }
+      #gallery {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .sprite {
+        max-width: 100%;
+        margin: 1rem;
+        padding: 0;
+        background: #333;
+      }
+      .sprite-content {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+      img {
+        display: block;
+        height: 18rem;
+        image-rendering: pixelated;
+        margin: 0;
+        padding: 0;
+      }
+      h1 {
+        text-align: center;
+        margin: 1.5rem auto 1.5rem auto;
+      }
+      h2 {
+        color: #ccc;
+        margin: 0;
+        padding: 0.2rem 0.2rem 0.4rem 0.4rem;
+        font-weight: normal;
+        background: #444;
+      }
+      hr {
+        border: solid 1px #333;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>.\SpriteViewer.ps1&nbsp;</h1>
+    <hr />
+    <div id="gallery">
+      __SPRITE_CONTENT__
+    </div>
+  </body>
+</html>
