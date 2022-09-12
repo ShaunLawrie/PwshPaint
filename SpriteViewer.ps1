@@ -24,6 +24,8 @@ try {
         while (-not $contextTask.AsyncWaitHandle.WaitOne(200)) { }
         $context = $contextTask.GetAwaiter().GetResult()
         
+        Write-Host "Starting request $($context.Request.HttpMethod) $($context.Request.RawUrl)"
+        
         if ($context.Request.HttpMethod -eq 'GET' -and $context.Request.RawUrl -eq '/') {
             $sprites = Get-ChildItem "./sprites/*.png"
             $template = Get-Content -Raw "$PSScriptRoot/sprites/index.html"
