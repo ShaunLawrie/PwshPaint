@@ -71,10 +71,11 @@ try {
     Write-Host -ForegroundColor Green "Web server is running at $prefix"
     Start-Process $prefix
     while($job.State -eq "Running") {
-        $job | Receive-Job
         Start-Sleep -Seconds 1
     }
 } finally {
+    Write-Host "Job log:"
+    $job | Receive-Job
     $job | Stop-Job
     $job | Remove-Job
 }
