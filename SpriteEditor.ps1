@@ -8,17 +8,18 @@ $ErrorActionPreference = "Stop"
 
 Import-Module "$PSScriptRoot/modules/SpriteHandler.psm1" -Force
 
-$global:Tools = @("Pen", "Eraser")
-$global:Modes = @("Spacebar", "Snake")
+$global:Tools = @("Pen", "Fill", "Snake", "Dropper", "Pen Eraser", "Fill Eraser")
+$global:Commands = @("New   (ctrl+N)", "Open  (ctrl+O)", "Save  (ctrl+S)", "Undo  (ctrl+Z)", "Redo  (ctrl+Y)", "Close (ctrl+C)")
 $global:CurrentHue = 0
 $global:CurrentSaturation = 100
 $global:CurrentValue = 100
 $global:HueChunkSize = 36
 $global:CurrentTool = "Pen"
-$global:CurrentMode = "Spacebar"
 $global:ForceRefresh = $false
 $global:BackgroundColors = @(@(35, 35, 35), @(30, 30, 30))
 $global:Image = @($null) * $ImageWidth
+$global:ImageWidth = $ImageWidth
+$global:ImageHeight = $ImageHeight
 
 if($Path) {
     if(Test-Path $Path) {
@@ -34,13 +35,7 @@ if($Path) {
     }
 }
 
-Clear-Host
-Write-Host -NoNewline "~ SpriteEditor.ps1 "
-if($Path) {
-    Write-Host -ForegroundColor DarkGray "$(Split-Path $Path -Leaf)`n"
-} else {
-    Write-Host "`n"
-}
+Wait-ForCanvasToFitInTerminal
 $CanvasTopLeft = $Host.UI.RawUI.CursorPosition
 $currentPosition = @{ X = 0; Y = 0 }
 [Console]::CursorVisible = $false
@@ -55,27 +50,16 @@ $previousWindowSize = @{
 
 try {
     while($true) {
-        Write-Frame -CanvasTopLeft $CanvasTopLeft -CurrentPosition $currentPosition -PreviousPosition $previousPosition -ImageHeight $ImageHeight -ImageWidth $ImageWidth
+        Write-Frame -CanvasTopLeft $CanvasTopLeft -CurrentPosition $currentPosition -PreviousPosition $previousPosition
         $inputReceived = $false
         while(!$inputReceived) {
             # Redraw on window resize
             if($previousWindowSize.X -ne $Host.UI.RawUI.WindowSize.Width -or $previousWindowSize.Y -ne $Host.UI.RawUI.WindowSize.Height) {
                 Clear-Host
-                if(!(Test-CanvasFitsInTerminal -ImageWidth $ImageWidth -ImageHeight $ImageHeight)) {
-                    Write-Warning "Your canvas is too large for the terminal window, try zooming out"
-                    while(!(Test-CanvasFitsInTerminal -ImageWidth $ImageWidth -ImageHeight $ImageHeight)) {
-                        Start-Sleep -Milliseconds 100
-                    }
-                }
+                Wait-ForCanvasToFitInTerminal -Path $Path
                 $previousWindowSize = @{
                     X = $Host.UI.RawUI.WindowSize.Width
                     Y = $Host.UI.RawUI.WindowSize.Height
-                }
-                Write-Host -NoNewline "~ SpriteEditor.ps1 "
-                if($Path) {
-                    Write-Host -ForegroundColor DarkGray "$(Split-Path $Path -Leaf)`n"
-                } else {
-                    Write-Host "`n"
                 }
                 $global:ForceRefresh = $true
                 $inputReceived = $true
@@ -114,59 +98,22 @@ try {
                 }
                 "S" {
                     if($key.Modifiers -eq "Control") {
-                        while($true) {
-                            Clear-Host
-                            Write-Host "~ SpriteEditor.ps1 - Save your pixel art`n"
-                            [Console]::CursorVisible = $true
-                            if($Path) {
-                                $defaultPath = $Path
-                                Write-Host -ForegroundColor DarkGray "Press ENTER to use the default '$Path'"
-                                Write-Host -NoNewline -ForegroundColor DarkGray "Enter a filename or path to save the sprite json: "
-                                $Path = Read-Host
-                                if([string]::IsNullOrEmpty($Path)) {
-                                    $Path = $defaultPath
-                                }
-                            } else {
-                                Write-Host -NoNewline -ForegroundColor DarkGray "Enter a filename or path to save the sprite json: "
-                                $Path = Read-Host
-                            }
-                            if($Path -notmatch "\.json$") {
-                                $Path = $Path + ".json"
-                            }
-                            if($Path -eq (Split-Path $Path -Leaf)) {
-                                $Path = Join-Path "$PSScriptRoot/sprites" $Path
-                            }
-                            if(Test-Path $Path) {
-                                Write-Host -ForegroundColor Yellow -NoNewline "A file exists at $Path, do you want to overwrite it? (y/n) "
-                                $answer = Read-Host
-                                if($answer -ne "y") {
-                                    continue
-                                }
-                            }
-                            $c = $global:Image | ConvertTo-Json -Depth 25
-                            Set-Content -Path $Path -Value $c
-                            Out-Gif -Path ($Path -replace "[^\.]+$", "gif") -ImageHeight $ImageHeight -ImageWidth $ImageWidth
-                            Write-Host -ForegroundColor DarkGray -NoNewline "Saved at $Path"
-                            [Console]::CursorVisible = $false
-                            0..3 | Foreach-Object {
-                                Start-Sleep -Milliseconds 500
-                                Write-Host -ForegroundColor DarkGray -NoNewline "."
-                            }
-                            Clear-Host
-                            Write-Host -NoNewline "~ SpriteEditor.ps1 "
-                            Write-Host -ForegroundColor DarkGray "$(Split-Path $Path -Leaf)`n"
-                            $CanvasTopLeft = $Host.UI.RawUI.CursorPosition
-                            $inputReceived = $true
-                            break
-                        }
+                        Save-JsonSprite -Path $Path -ScriptRoot $PSScriptRoot
+                        $inputReceived = $true
                     } else {
                         $global:CurrentSaturation = [Math]::Min($global:CurrentSaturation + 20, 100)
                         $inputReceived = $true
                     }
                 }
                 "Z" {
-                    $global:CurrentValue = [Math]::Max($global:CurrentValue - 20, 0)
-                    $inputReceived = $true
+                    if($key.Modifiers -eq "Control") {
+                        Pop-UndoState
+                        $global:ForceRefresh = $true
+                        $inputReceived = $true
+                    } else {
+                        $global:CurrentValue = [Math]::Max($global:CurrentValue - 20, 0)
+                        $inputReceived = $true
+                    }
                 }
                 "X" {
                     $global:CurrentValue = [Math]::Min($global:CurrentValue + 20, 100)
@@ -177,99 +124,64 @@ try {
                     $global:CurrentTool = $global:Tools[(($index + 1) % $global:Tools.Count)]
                     $inputReceived = $true
                 }
-                "M" {
-                    $index = $global:Modes.IndexOf($global:CurrentMode)
-                    $global:CurrentMode = $global:Modes[(($index + 1) % $global:Modes.Count)]
-                    if($global:CurrentMode -eq "Snake") {
-                        if($global:CurrentTool -eq "Pen") {
-                            $global:Image[$currentPosition.X][$currentPosition.Y] = [int[]](Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)
-                        } elseif($global:CurrentTool -eq "Eraser") {
-                            $global:Image[$currentPosition.X][$currentPosition.Y] = $null
-                        }
-                    }
-                    $inputReceived = $true
-                }
                 "O" {
                     if($key.Modifiers -eq "Control") {
-                        while($true) {
-                            Clear-Host
-                            Write-Host "~ SpriteEditor.ps1 - Open a saved pixel art"
-                            $jsonFiles = Get-ChildItem "$PSScriptRoot/sprites/" -Filter "*.json"
-                            $latestJsonFiles = $jsonFiles `
-                                | Select-Object Name, FullName, @{ Name = "Last Modified"; Expression = { (Get-ItemProperty $_.FullName).LastWriteTime} } `
-                                | Sort-Object { $_."Last Modified" } `
-                                | Select-Object -Last 10 *
-                            $script:i = $latestJsonFiles.Count
-                            $output = $latestJsonFiles | Select-Object @{ Name = "#"; Expression = { [int]$script:i-- }}, Name, "Last Modified"
-                            Write-Host -Foreground DarkGray ($output | Format-Table * | Out-String).TrimEnd()
-                            [Console]::CursorVisible = $true
-                            Write-Host -Foreground DarkGray -NoNewline "`nEnter the # of the recent file to open or enter a file path: "
-                            $Path = Read-Host
-                            [Console]::CursorVisible = $false
-                            if([int]::TryParse($Path, [ref]$null)) {
-                                $Path = $latestJsonFiles[($script:i - $Path)].FullName
-                            }
-                            if(Test-Path $Path) {
-                                Open-JsonSprite -Path $Path
-                                $ImageWidth = $global:Image.Count
-                                $ImageHeight = $global:Image[0].Count
-                                if(!(Test-CanvasFitsInTerminal -ImageWidth $ImageWidth -ImageHeight $ImageHeight)) {
-                                    Write-Warning "Your canvas is too large for the terminal window, try zooming out"
-                                    while(!(Test-CanvasFitsInTerminal -ImageWidth $ImageWidth -ImageHeight $ImageHeight)) {
-                                        Start-Sleep -Milliseconds 100
-                                    }
-                                }
-                                Clear-Host
-                                Write-Host -NoNewline "~ SpriteEditor.ps1 "
-                                Write-Host -ForegroundColor DarkGray "$(Split-Path $Path -Leaf)`n"
-                                $CanvasTopLeft = $Host.UI.RawUI.CursorPosition
-                                $inputReceived = $true
-                                break
-                            } else {
-                                Write-Error "File '$Path' doesn't exist"
-                            }
-                        }
+                        Open-JsonSpriteDialog -ScriptRoot $PSScriptRoot
+                        $inputReceived = $true
                     }
                 }
                 "N" {
                     if($key.Modifiers -eq "Control") {
-                        Clear-Host
-                        Write-Host "~ SpriteEditor.ps1 - Create a new canvas`n"
-                        while($true) {
-                            Write-Host -ForegroundColor DarkGray -NoNewline "Enter a width in pixels: "
-                            $ImageWidth = Read-Host
-                            Write-Host -ForegroundColor DarkGray -NoNewline "Enter a height in pixels: "
-                            $ImageHeight = Read-Host
-                            if(!(Test-CanvasFitsInTerminal -ImageWidth $ImageWidth -ImageHeight $ImageHeight)) {
-                                Write-Warning "Your canvas width is too large for the terminal window, try zooming out and entering the size you want again"
-                                continue
-                            }
-                            $global:Image = @($null) * $ImageWidth
-                            for($x = 0; $x -lt $ImageWidth; $x++) {
-                                $global:Image[$x] = @($null) * $ImageHeight
-                            }
-                            Clear-Host
-                            Write-Host "~ SpriteEditor.ps1`n"
-                            $CanvasTopLeft = $Host.UI.RawUI.CursorPosition
-                            $inputReceived = $true
-                            break
-                        }
+                        New-JsonSpriteDialog
+                        $inputReceived = $true
                     }
                 }
                 "Spacebar" {
-                    if($global:CurrentTool -eq "Pen") {
-                        $global:Image[$currentPosition.X][$currentPosition.Y] = (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)
+
+                    switch($global:CurrentTool) {
+                        "Pen" {
+                            $global:Image[$currentPosition.X][$currentPosition.Y] = (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)
+                        }
+                        "Snake" {
+                            $global:Image[$currentPosition.X][$currentPosition.Y] = (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)
+                        }
+                        "Eraser" {
+                            $global:Image[$currentPosition.X][$currentPosition.Y] = $null
+                        }
+                        "Fill" {
+                            Add-Fill -OriginalColor $global:Image[$currentPosition.X][$currentPosition.Y] -CurrentPosition $currentPosition
+                            $global:ForceRefresh = $true
+                        }
+                        "Fill Eraser" {
+                            Remove-Fill -OriginalColor $global:Image[$currentPosition.X][$currentPosition.Y] -CurrentPosition $currentPosition
+                            $global:ForceRefresh = $true
+                        }
+                        "Dropper" {
+                            $originalColor = $global:Image[$currentPosition.X][$currentPosition.Y]
+                            $result = Find-Hsv -Rgb $originalColor
+                            if($result) {
+                                $global:CurrentHue = $result.H
+                                $global:CurrentSaturation = $result.S
+                                $global:CurrentValue = $result.V
+                            }
+                            $global:ForceRefresh = $true
+                        }
                     }
 
-                    if($global:CurrentTool -eq "Eraser") {
-                        $global:Image[$currentPosition.X][$currentPosition.Y] = $null
-                    }
+                    Push-UndoState
                     $inputReceived = $true
                 }
                 "C" {
                     if($key.Modifiers -eq "Control") {
                         $inputReceived = $true
                         exit 1
+                    }
+                }
+                "Y" {
+                    if($key.Modifiers -eq "Control") {
+                        Pop-RedoState
+                        $global:ForceRefresh = $true
+                        $inputReceived = $true
                     }
                 }
             }
@@ -280,15 +192,13 @@ try {
                     } elseif($global:CurrentTool -eq "Eraser") {
                         $global:Image[$currentPosition.X][$currentPosition.Y] = $null
                     }
+                    Push-UndoState
                 }
             }
             if($previousPosition.X -ne $currentPosition.X -or $previousPosition.Y -ne $currentPosition.Y) {
-                if($global:CurrentMode -eq "Snake") {
-                    if($global:CurrentTool -eq "Pen") {
-                        $global:Image[$currentPosition.X][$currentPosition.Y] = (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)
-                    } elseif($global:CurrentTool -eq "Eraser") {
-                        $global:Image[$currentPosition.X][$currentPosition.Y] = $null
-                    }
+                if($global:CurrentTool -eq "Snake") {
+                    $global:Image[$currentPosition.X][$currentPosition.Y] = (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)
+                    Push-UndoState
                 }
                 $inputReceived = $true
             }
