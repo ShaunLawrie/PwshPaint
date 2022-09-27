@@ -145,7 +145,7 @@ try {
                         "Snake" {
                             $global:Image[$currentPosition.X][$currentPosition.Y] = (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)
                         }
-                        "Eraser" {
+                        "Pen Eraser" {
                             $global:Image[$currentPosition.X][$currentPosition.Y] = $null
                         }
                         "Fill" {
