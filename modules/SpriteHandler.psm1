@@ -490,22 +490,28 @@ function Add-Fill {
         [object] $CurrentPosition
     )
     $global:Image[$CurrentPosition.X][$CurrentPosition.Y] = (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)
-    for($x = -1; $x -lt 2; $x++) {
-        $relativeX = $CurrentPosition.X + $x
-        for($y = -1; $y -lt 2; $y++) {
-            $relativeY = $CurrentPosition.Y + $y
-            if($relativeX -ge 0 -and $relativeX -lt $global:ImageWidth -and $relativeY -ge 0 -and $relativeY -lt $global:ImageHeight) {
-                $refObject = $global:Image[$relativeX][$relativeY]
-                $diffObject = $OriginalColor
-                if($null -eq $refObject) {
-                    $refObject = @(-1, -1, -1)
-                }
-                if($null -eq $diffObject) {
-                    $diffObject = @(-1, -1, -1)
-                }
-                if($null -eq (Compare-Object -ReferenceObject $refObject -DifferenceObject $diffObject)) {
-                    Add-Fill -OriginalColor $OriginalColor -CurrentPosition @{ X = $relativeX; Y = $relativeY } -ImageWidth $global:ImageWidth -ImageHeight $global:ImageHeight
-                }
+    # Don't want to color on diagonals
+    $pixelsToTryColor = @(
+        @(-1, 0),
+        @(1, 0),
+        @(0, 1),
+        @(0, -1)
+    )
+
+    foreach($pixel in $pixelsToTryColor) {
+        $relativeX = $CurrentPosition.X + $pixel[0]
+        $relativeY = $CurrentPosition.Y + $pixel[1]
+        if($relativeX -ge 0 -and $relativeX -lt $global:ImageWidth -and $relativeY -ge 0 -and $relativeY -lt $global:ImageHeight) {
+            $refObject = $global:Image[$relativeX][$relativeY]
+            $diffObject = $OriginalColor
+            if($null -eq $refObject) {
+                $refObject = @(-1, -1, -1)
+            }
+            if($null -eq $diffObject) {
+                $diffObject = @(-1, -1, -1)
+            }
+            if($null -eq (Compare-Object -ReferenceObject $refObject -DifferenceObject $diffObject)) {
+                Add-Fill -OriginalColor $OriginalColor -CurrentPosition @{ X = $relativeX; Y = $relativeY } -ImageWidth $global:ImageWidth -ImageHeight $global:ImageHeight
             }
         }
     }

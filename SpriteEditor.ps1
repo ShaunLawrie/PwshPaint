@@ -158,13 +158,15 @@ try {
                         }
                         "Dropper" {
                             $originalColor = $global:Image[$currentPosition.X][$currentPosition.Y]
-                            $result = Find-Hsv -Rgb $originalColor
-                            if($result) {
-                                $global:CurrentHue = $result.H
-                                $global:CurrentSaturation = $result.S
-                                $global:CurrentValue = $result.V
+                            if($null -ne $originalColor) {
+                                $result = Find-Hsv -Rgb $originalColor
+                                if($result) {
+                                    $global:CurrentHue = $result.H
+                                    $global:CurrentSaturation = $result.S
+                                    $global:CurrentValue = $result.V
+                                }
+                                $global:ForceRefresh = $true
                             }
-                            $global:ForceRefresh = $true
                         }
                     }
 
