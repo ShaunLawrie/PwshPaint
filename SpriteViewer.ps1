@@ -1,7 +1,7 @@
 $prefix = "http://localhost:8383/"
-$pathRoot = $PSScriptRoot
+$contentRoot = $PSScriptRoot
 try {
-    $job = Start-Job -ArgumentList @($prefix, $pathRoot) -ScriptBlock {
+    $job = Start-Job -ArgumentList @($prefix, $contentRoot) -ScriptBlock {
         param (
             [string] $prefix,
             [string] $contentRoot
@@ -30,8 +30,11 @@ try {
                 Write-Host "Starting request $($context.Request.HttpMethod) $($context.Request.RawUrl)"
                 
                 if ($context.Request.HttpMethod -eq 'GET' -and $context.Request.RawUrl -eq '/') {
-                    $sprites = Get-ChildItem "./sprites/*.png"
+                    $sprites = Get-ChildItem "$contentRoot/sprites/*.png"
                     $template = Get-Content -Raw "$contentRoot/sprites/index.html"
+                    if(!$sprites) {
+                        Write-Warning "No sprites found matching path '$contentRoot/sprites/*.png'"
+                    }
                     $spriteContent = ""
                     foreach($sprite in $sprites) {
                         $spriteContent += $spriteTemplate -replace "__SPRITE_FILENAME__", $sprite.Name
