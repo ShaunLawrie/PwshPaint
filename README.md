@@ -2,7 +2,15 @@
 
 While procrastinating about setting up my blog I wanted to create a favicon in a pixel art style. Instead of creating the icon I got carried away spaghetti coding a pixel art editor for the terminal in PowerShell...
 
-To open the editor run `./SpriteEditor.ps1`  
+To open the editor run:
+```pwsh
+./SpriteEditor.ps1
+```
+To open the editor with some vim keybindings for the hacker types:
+```pwsh
+./SpriteEditor.ps1 -AppSettingsPath "appsettings.vim.json"
+```
+You can create your own keybinding if you feel like it but I hacked it in quickly so no promises it works well...  
 The editor controls are all indicated in the UI apart from pressing [SPACE] to draw pixels and arrow keys to move. Snake mode will make the pen or eraser constantly apply changes as you navigate the canvas.
 ![image](https://user-images.githubusercontent.com/13159458/190280318-bc757f47-74e8-4b25-b40b-166f95131c23.png)
 

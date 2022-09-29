@@ -1,6 +1,7 @@
 param (
     [int] $ImageWidth = 28,
     [int] $ImageHeight = 28,
+    [string] $AppSettingsPath = "$PSScriptRoot/appsettings.json",
     [string] $Path
 )
 
@@ -8,8 +9,16 @@ $ErrorActionPreference = "Stop"
 
 Import-Module "$PSScriptRoot/modules/SpriteHandler.psm1" -Force
 
+if(!(Test-Path $AppSettingsPath)) {
+    Write-Error "Could not find a settings file at '$AppSettingsPath'"
+}
+$global:AppSettings = Get-Content $AppSettingsPath | ConvertFrom-Json
+$global:KeyBindings = $global:AppSettings.Keybindings
+$global:SwitchToolControlHeader = Get-SwitchToolControlHeader
+$global:ColorKeys = Get-ColorKeys
 $global:Tools = @("Pen", "Fill", "Snake", "Dropper", "Pen Eraser", "Fill Eraser")
-$global:Commands = @("New   (ctrl+N)", "Open  (ctrl+O)", "Save  (ctrl+S)", "Undo  (ctrl+Z)", "Redo  (ctrl+Y)", "Close (ctrl+C)")
+$global:Commands = Get-AnnotatedCommands -Commands @("New", "Open", "Save", "Undo", "Redo", "Close") -Section "Commands"
+$global:NavigationControls = Get-AnnotatedCommands -Commands @("Left", "Right", "Up", "Down") -Section "Navigation"
 $global:CurrentHue = 0
 $global:CurrentSaturation = 100
 $global:CurrentValue = 100
@@ -71,70 +80,73 @@ try {
                 X = $currentPosition.X
                 Y = $currentPosition.Y
             }
-            switch($key.Key) {
-                "LeftArrow" {
+            $action = Get-ActionForKey -Key $key
+            switch($action) {
+                "Left" {
                     $currentPosition.X = [Math]::Max($currentPosition.X - 1, 0)
                 }
-                "RightArrow" {
+                "Right" {
                     $currentPosition.X = [Math]::Min($currentPosition.X + 1, $ImageWidth - 1)
                 }
-                "UpArrow" {
+                "Up" {
                     $currentPosition.Y = [Math]::Max($currentPosition.Y - 1, 0)
                 }
-                "DownArrow" {
+                "Down" {
                     $currentPosition.Y = [Math]::Min($currentPosition.Y + 1, $ImageHeight - 1)
                 }
-                "Q" {
+                "HueLeft" {
                     $global:CurrentHue = [Math]::Max($global:CurrentHue - $global:HueChunkSize, 0)
                     $inputReceived = $true
                 }
-                "W" {
+                "HueRight" {
                     $global:CurrentHue = [Math]::Min($global:CurrentHue + $global:HueChunkSize, 360 - $global:HueChunkSize)
                     $inputReceived = $true
                 }
-                "A" {
+                "SaturationLeft" {
                     $global:CurrentSaturation = [Math]::Max($global:CurrentSaturation - 20, 0)
                     $inputReceived = $true
                 }
-                "S" {
-                    if($key.Modifiers -eq "Control") {
-                        Save-JsonSprite -Path $Path -ScriptRoot $PSScriptRoot
-                        $inputReceived = $true
-                    } else {
-                        $global:CurrentSaturation = [Math]::Min($global:CurrentSaturation + 20, 100)
-                        $inputReceived = $true
-                    }
+                "SaturationRight" {
+                    $global:CurrentSaturation = [Math]::Min($global:CurrentSaturation + 20, 100)
+                    $inputReceived = $true
                 }
-                "Z" {
-                    if($key.Modifiers -eq "Control") {
-                        Pop-UndoState
-                        $global:ForceRefresh = $true
-                        $inputReceived = $true
-                    } else {
-                        $global:CurrentValue = [Math]::Max($global:CurrentValue - 20, 0)
-                        $inputReceived = $true
-                    }
+                "Undo" {
+                    Pop-UndoState
+                    $global:ForceRefresh = $true
+                    $inputReceived = $true
                 }
-                "X" {
+                "ValueLeft" {
+                    $global:CurrentValue = [Math]::Max($global:CurrentValue - 20, 0)
+                    $inputReceived = $true
+                }
+                "ValueRight" {
                     $global:CurrentValue = [Math]::Min($global:CurrentValue + 20, 100)
                     $inputReceived = $true
                 }
-                "T" {
+                "SwitchTool" {
                     $index = $global:Tools.IndexOf($global:CurrentTool)
-                    $global:CurrentTool = $global:Tools[(($index + 1) % $global:Tools.Count)]
+                    if($key.Modifiers -eq "Shift") {
+                        $targetIndex = $index - 1
+                        if($targetIndex -lt 0) {
+                            $targetIndex = $global:Tools.Count - 1
+                        }
+                    } else {
+                        $targetIndex = ($index + 1) % $global:Tools.Count
+                    }
+                    $global:CurrentTool = $global:Tools[$targetIndex]
                     $inputReceived = $true
                 }
-                "O" {
-                    if($key.Modifiers -eq "Control") {
-                        Open-JsonSpriteDialog -ScriptRoot $PSScriptRoot
-                        $inputReceived = $true
-                    }
+                "Open" {
+                    Open-JsonSpriteDialog -ScriptRoot $PSScriptRoot
+                    $inputReceived = $true
                 }
-                "N" {
-                    if($key.Modifiers -eq "Control") {
-                        New-JsonSpriteDialog
-                        $inputReceived = $true
-                    }
+                "New" {
+                    New-JsonSpriteDialog
+                    $inputReceived = $true
+                }
+                "Save" {
+                    Save-JsonSprite -Path $Path -ScriptRoot $PSScriptRoot
+                    $inputReceived = $true
                 }
                 "Spacebar" {
 
@@ -173,21 +185,17 @@ try {
                     Push-UndoState
                     $inputReceived = $true
                 }
-                "C" {
-                    if($key.Modifiers -eq "Control") {
-                        $inputReceived = $true
-                        exit 1
-                    }
+                "Close" {
+                    $inputReceived = $true
+                    exit 0
                 }
-                "Y" {
-                    if($key.Modifiers -eq "Control") {
-                        Pop-RedoState
-                        $global:ForceRefresh = $true
-                        $inputReceived = $true
-                    }
+                "Redo" {
+                    Pop-RedoState
+                    $global:ForceRefresh = $true
+                    $inputReceived = $true
                 }
             }
-            if(@("Q", "W", "A", "S", "Z", "X", "T") -contains $key.Key) {
+            if(@("HueLeft", "HueRight", "ValueLeft", "ValueRight", "SaturationLeft", "SaturationRight", "SwitchTool") -contains $action) {
                 if($global:CurrentMode -eq "Snake") {
                     if($global:CurrentTool -eq "Pen") {
                         $global:Image[$currentPosition.X][$currentPosition.Y] = (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $global:CurrentValue)

@@ -1,4 +1,4 @@
-$script:ToolboxDivider = "---------------"
+$script:ToolboxDivider = "------------------"
 $script:UndoStates = [System.Collections.Stack]::new()
 $script:RedoStates = [System.Collections.Stack]::new()
 
@@ -131,6 +131,64 @@ function Write-ToolboxControls {
     return $Y
 }
 
+function Get-AnnotatedCommands {
+    param (
+        [array] $Commands,
+        [string] $Section
+    )
+    $annotatedCommands = @()
+    foreach($command in $Commands) {
+        $keybinding = $global:Keybindings."$Section"."$command"
+        if($keybinding.Modifier) {
+            $bound = $command + ("(" + $keybinding.Modifier + "+" + $keybinding.Key).PadLeft($script:ToolboxDivider.Length - 1 - $command.Length) + ")"
+        } else {
+            $bound = $command + ("(" + $keybinding.Key).PadLeft($script:ToolboxDivider.Length - 1 - $command.Length) + ")"
+        }
+        $annotatedCommands += @{
+            Text = $bound
+            Key = $keybinding.Key
+            Modifier = $keybinding.Modifier
+        }
+    }
+    return $annotatedCommands
+}
+
+function Get-ActionForKey {
+    param (
+        [object] $Key
+    )
+
+    if($Key.Key -eq "Spacebar") {
+        return "Spacebar"
+    }
+
+    foreach($section in $global:Keybindings.PSObject.Properties.Value) {
+        if($Key.Modifiers -ne 0) {
+            $foundKey = $section.PSObject.Properties | Where-Object { $_.Value.Key -eq $Key.Key -and $_.Value.Modifier -eq $Key.Modifiers }
+            if($foundKey) {
+                return $foundKey.Name
+            }
+        }
+    }
+
+    foreach($section in $global:Keybindings.PSObject.Properties.Value) {
+        $foundKey = $section.PSObject.Properties | Where-Object { $_.Value.Key -eq $Key.Key }
+        if($foundKey) {
+            return $foundKey.Name
+        }
+    }
+}
+
+function Get-SwitchToolControlHeader {
+    $toolKeybinding = $global:Keybindings.Tools.SwitchTool
+    if($toolKeybinding.Modifier) {
+        $bound = $toolKeybinding.Modifier + "+" + $toolKeybinding.Key
+    } else {
+        $bound = $toolKeybinding.Key
+    }
+    return "Tools: " + ("(" + $bound + ")").PadLeft($script:ToolboxDivider.Length - 6 - $bound.Length)
+}
+
 function Write-Toolbox {
     param (
         [object] $ToolboxTopLeft
@@ -141,12 +199,40 @@ function Write-Toolbox {
     }
 
     $toolboxOffsetY = $ToolboxTopLeft.Y
-
-    $toolboxOffsetY = Write-ToolboxHeaders -Headers @("(T)ools: ", $script:ToolboxDivider) -X $ToolboxTopLeft.X -Y $toolboxOffsetY
+    $toolboxOffsetY = Write-ToolboxHeaders -Headers @($global:SwitchToolControlHeader, $script:ToolboxDivider) -X $ToolboxTopLeft.X -Y $toolboxOffsetY
     $toolboxOffsetY = Write-ToolboxControls -Controls $global:Tools -CurrentControl $global:CurrentTool -X $ToolboxTopLeft.X -Y $toolboxOffsetY
 
     $toolboxOffsetY = Write-ToolboxHeaders -Headers @("", "Commands:", $script:ToolboxDivider) -X $ToolboxTopLeft.X -Y $toolboxOffsetY
-    Write-ToolboxControls -Controls $global:Commands -X $ToolboxTopLeft.X -Y $toolboxOffsetY | Out-Null
+    $toolboxOffsetY = Write-ToolboxControls -Controls $global:Commands.Text -X $ToolboxTopLeft.X -Y $toolboxOffsetY
+
+    $toolboxOffsetY = Write-ToolboxHeaders -Headers @("", "Navigation:", $script:ToolboxDivider) -X $ToolboxTopLeft.X -Y $toolboxOffsetY
+    $toolboxOffsetY = Write-ToolboxControls -Controls $global:NavigationControls.Text -X $ToolboxTopLeft.X -Y $toolboxOffsetY
+}
+
+function Get-ColorKeys {
+    $types = @("Hue", "Saturation", "Value")
+    $controlText = @{}
+    foreach($type in $types) {
+        $leftControl = $global:KeyBindings.Color."${type}Left"
+        if($leftControl.Modifier) {
+            $controlText[$type] = $leftControl.Modifier + "+" + $leftControl.Key + "/"
+        } else {
+            $controlText[$type] = $leftControl.Key + "/"
+        }
+
+        $rightControl = $global:KeyBindings.Color."${type}Right"
+        if($rightControl.Modifier) {
+            $controlText[$type] += $rightControl.Modifier + "+" + $rightControl.Key
+        } else {
+            $controlText[$type] += $rightControl.Key
+        }
+    }
+
+    return @{
+        Hue = $controlText["Hue"]
+        Saturation = $controlText["Saturation"]
+        Value = $controlText["Value"]
+    }
 }
 
 function Write-ColorControls {
@@ -161,7 +247,7 @@ function Write-ColorControls {
         }
         $controls.Append( (Get-Color -Rgb (Convert-HsvToRgb -Hue $h -Saturation 100 -Value 100) -Content $content) ) | Out-Null
     }
-    $controls.Append(" q/w `n  $currentColor  ") | Out-Null
+    $controls.Append(" $($global:ColorKeys.Hue) `n  $currentColor  ") | Out-Null
     for($s = 0; $s -le 100; $s += 20) {
         $content = "       "
         if($s -eq $global:CurrentSaturation) {
@@ -172,7 +258,7 @@ function Write-ColorControls {
         }
         $controls.Append( (Get-Color -Rgb (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $s -Value $global:CurrentValue) -Content $content) ) | Out-Null
     }
-    $controls.Append(" a/s `n  $currentColor  ") | Out-Null
+    $controls.Append(" $($global:ColorKeys.Saturation) `n  $currentColor  ") | Out-Null
     for($v = 0; $v -le 100; $v += 20) {
         $content = "       "
         if($v -eq $global:CurrentValue) {
@@ -183,7 +269,7 @@ function Write-ColorControls {
         }
         $controls.Append( (Get-Color -Rgb (Convert-HsvToRgb -Hue $global:CurrentHue -Saturation $global:CurrentSaturation -Value $v) -Content $content) ) | Out-Null
     }
-    $controls.Append(" z/x ") | Out-Null
+    $controls.Append(" $($global:ColorKeys.Value) ") | Out-Null
     [Console]::WriteLine($controls)
 }
 
@@ -522,23 +608,32 @@ function Remove-Fill {
         [array] $OriginalColor,
         [object] $CurrentPosition
     )
+    if($null -eq $global:Image[$CurrentPosition.X][$CurrentPosition.Y]) {
+        return
+    }
+
     $global:Image[$CurrentPosition.X][$CurrentPosition.Y] = $null
-    for($x = -1; $x -lt 2; $x++) {
-        $relativeX = $CurrentPosition.X + $x
-        for($y = -1; $y -lt 2; $y++) {
-            $relativeY = $CurrentPosition.Y + $y
-            if($relativeX -ge 0 -and $relativeX -lt $global:ImageWidth -and $relativeY -ge 0 -and $relativeY -lt $global:ImageHeight) {
-                $refObject = $global:Image[$relativeX][$relativeY]
-                $diffObject = $OriginalColor
-                if($null -eq $refObject) {
-                    $refObject = @(-1, -1, -1)
-                }
-                if($null -eq $diffObject) {
-                    $diffObject = @(-1, -1, -1)
-                }
-                if($null -eq (Compare-Object -ReferenceObject $refObject -DifferenceObject $diffObject)) {
-                    Remove-Fill -OriginalColor $OriginalColor -CurrentPosition @{ X = $relativeX; Y = $relativeY } -ImageWidth $global:ImageWidth -ImageHeight $global:ImageHeight
-                }
+    $pixelsToTryColor = @(
+        @(-1, 0),
+        @(1, 0),
+        @(0, 1),
+        @(0, -1)
+    )
+
+    foreach($pixel in $pixelsToTryColor) {
+        $relativeX = $CurrentPosition.X + $pixel[0]
+        $relativeY = $CurrentPosition.Y + $pixel[1]
+        if($relativeX -ge 0 -and $relativeX -lt $global:ImageWidth -and $relativeY -ge 0 -and $relativeY -lt $global:ImageHeight) {
+            $refObject = $global:Image[$relativeX][$relativeY]
+            $diffObject = $OriginalColor
+            if($null -eq $refObject) {
+                $refObject = @(-1, -1, -1)
+            }
+            if($null -eq $diffObject) {
+                $diffObject = @(-1, -1, -1)
+            }
+            if($null -eq (Compare-Object -ReferenceObject $refObject -DifferenceObject $diffObject)) {
+                Remove-Fill -OriginalColor $OriginalColor -CurrentPosition @{ X = $relativeX; Y = $relativeY } -ImageWidth $global:ImageWidth -ImageHeight $global:ImageHeight
             }
         }
     }
