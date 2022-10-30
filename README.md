@@ -31,4 +31,4 @@ _(If you prefer Vim-style hjkl keys to navigate instead of arrows you can use `I
 ```pwsh
 Invoke-PaintGallery
 ```
-![image](https://user-images.githubusercontent.com/13159458/190280363-71d602c8-35a5-4aa8-8ad2-f9c41ece9c62.png)
+![image](https://user-images.githubusercontent.com/13159458/198866053-a1e1dc78-6e98-4fe8-bd36-830f5a6ce48a.png)
