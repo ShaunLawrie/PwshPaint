@@ -88,8 +88,9 @@ function Invoke-PaintGallery {
                 $http.Stop()
             }
         }
-        Write-Host -ForegroundColor Green "Web server is running at $using:prefix"
-        Start-Process $using:prefix
+        Write-Host -ForegroundColor Green "Web server is running at $prefix"
+        Write-Host -ForegroundColor Green "Press Control-C to exit"
+        Start-Process $prefix
         while($job.State -eq "Running") {
             Start-Sleep -Seconds 1
         }
