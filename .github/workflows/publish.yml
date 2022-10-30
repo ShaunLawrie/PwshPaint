@@ -16,4 +16,4 @@ jobs:
       - name: Deploy Package
         shell: pwsh
         run: |
-          Publish-Module -Path "./PwshPaint/" -NugetApiKey $env:PSGALLERY_API_KEY -WhatIf
+          Publish-Module -Path "./PwshPaint/" -NugetApiKey $env:PSGALLERY_API_KEY
