@@ -1,5 +1,10 @@
 # PwshPaint
 
+[![GitHub license](https://img.shields.io/github/license/ShaunLawrie/PwshPaint)](https://github.com/ShaunLawrie/PwshPaint/blob/main/LICENSE)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/PwshPaint)](https://www.powershellgallery.com/packages/PwshPaint)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/PwshPaint)](https://www.powershellgallery.com/packages/PwshPaint)
+[![Build](https://img.shields.io/github/workflow/status/ShaunLawrie/PwshPaint/test)](https://github.com/ShaunLawrie/PwshPaint/actions/workflows/test.yml)
+
 While procrastinating about setting up my blog I wanted to create a favicon in a pixel art style. Instead of creating the icon I got carried away spaghetti coding a pixel art editor for the terminal in PowerShell...
 
 # Installation
