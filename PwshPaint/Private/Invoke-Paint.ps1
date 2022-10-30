@@ -618,7 +618,7 @@ function Add-Fill {
     } else {
         $script:Image[$CurrentPosition.X][$CurrentPosition.Y] = $currentFillColor
     }
-    
+
     # Don't want to color on diagonals
     $pixelsToTryColor = @(
         @(-1, 0),
