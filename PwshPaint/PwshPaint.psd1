@@ -1,5 +1,5 @@
 @{
-    ModuleVersion = '1.0.0'
+    ModuleVersion = '1.0.1'
     GUID = '32c58857-b36b-4d16-845d-fd72f34dfd72'
     Author = 'Shaun Lawrie'
     CompanyName = 'Shaun Lawrie'
@@ -7,7 +7,8 @@
     Description = 'A simple painting application for PowerShell'
     PowerShellVersion = '5.0'
     PowerShellHostName = 'ConsoleHost'
-    FunctionsToExport = 'Invoke-Paint', 'Invoke-PaintGallery'
+    RootModule = 'PwshPaint'
+    FunctionsToExport = @('Invoke-Paint', 'Invoke-PaintGallery')
     CmdletsToExport = @()
     VariablesToExport = '*'
     AliasesToExport = @()
