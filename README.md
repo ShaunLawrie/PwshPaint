@@ -1,19 +1,34 @@
-# PwshSprites
+# PwshPaint
+
+[![GitHub license](https://img.shields.io/github/license/ShaunLawrie/PwshPaint)](https://github.com/ShaunLawrie/PwshPaint/blob/main/LICENSE)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/PwshPaint)](https://www.powershellgallery.com/packages/PwshPaint)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/PwshPaint)](https://www.powershellgallery.com/packages/PwshPaint)
+[![Build](https://img.shields.io/github/workflow/status/ShaunLawrie/PwshPaint/test)](https://github.com/ShaunLawrie/PwshPaint/actions/workflows/test.yml)
 
 While procrastinating about setting up my blog I wanted to create a favicon in a pixel art style. Instead of creating the icon I got carried away spaghetti coding a pixel art editor for the terminal in PowerShell...
 
-To open the editor run:
+# Installation
 ```pwsh
-./SpriteEditor.ps1
+Install-Module PwshPaint
+Import-Module PwshPaint
 ```
-To open the editor with some vim keybindings for the hacker types:
-```pwsh
-./SpriteEditor.ps1 -AppSettingsPath "appsettings.vim.json"
-```
-You can create your own keybinding if you feel like it but I hacked it in quickly so no promises it works well...  
-The editor controls are all indicated in the UI apart from pressing [SPACE] to draw pixels and arrow keys to move. Snake mode will make the pen or eraser constantly apply changes as you navigate the canvas.
-![image](https://user-images.githubusercontent.com/13159458/190280318-bc757f47-74e8-4b25-b40b-166f95131c23.png)
 
-To open the viewer run `./SpriteViewer.ps1`  
-This will start a PowerShell web server and open a page showing all of the images in the sprites folder. There is a problem with ctrl-c being caught in the terminal so sometimes you need to close the window to stop the web server. I think using a background job would stop this occurring but I haven't tried it yet.
+# Usage
+
+## Editor
+
+To open the editor use:
+```pwsh
+Invoke-Paint
+```
+
+All controls are indicated in the UI:  
+![image](https://user-images.githubusercontent.com/13159458/198860063-efdc62b9-4524-4a5a-b9ec-55855469bf7f.png)
+_(If you prefer Vim-style hjkl keys to navigate instead of arrows you can use `Invoke-Paint -VimBindings`)_  
+
+## Gallery
+
+```pwsh
+Invoke-PaintGallery
+```
 ![image](https://user-images.githubusercontent.com/13159458/190280363-71d602c8-35a5-4aa8-8ad2-f9c41ece9c62.png)
