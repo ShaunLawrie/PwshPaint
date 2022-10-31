@@ -66,7 +66,7 @@ function Invoke-PaintGallery {
                     }
 
                     if ($context.Request.HttpMethod -eq 'GET' -and $context.Request.RawUrl -match '/images/[^.]+\.png') {
-                        $image = [System.IO.File]::ReadAllBytes("$using:contentRoot$($context.Request.RawUrl)")
+                        $image = [System.IO.File]::ReadAllBytes("$using:contentRoot$($context.Request.RawUrl -replace '/images/', '/Images/')")
                         $context.Response.ContentType = "image/png"
                         $context.Response.ContentLength64 = $image.Length
                         $context.Response.OutputStream.Write($image, 0, $image.Length)
