@@ -9,8 +9,7 @@ While procrastinating about setting up my blog I wanted to create a favicon in a
 
 # Installation
 ```pwsh
-Install-Module PwshPaint
-Import-Module PwshPaint
+Install-Module PwshPaint -Scope CurrentUser
 ```
 
 # Usage

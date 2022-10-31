@@ -90,8 +90,10 @@ function Invoke-PaintGallery {
         }
         Write-Host -ForegroundColor Green "Web server is running at $prefix"
         Write-Host -ForegroundColor Green "Press Control-C to exit"
-        if($IsWindows) {
+        try {
             Start-Process $prefix
+        } catch {
+            Write-Verbose "Could not open browser"
         }
         while($job.State -eq "Running") {
             Start-Sleep -Seconds 1
