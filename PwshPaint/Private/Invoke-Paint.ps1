@@ -455,7 +455,7 @@ function Open-JsonPainting {
     # convert these back by grabbing their "value"
     $script:Image = @($null) * $Obj.Count
     for($i = 0; $i -lt $script:Image.Count; $i++){
-        if($Obj[$i].value) {
+        if("value" -in $Obj[$i].PSObject.Properties) {
             $script:Image[$i] = $Obj[$i].value
         } else {
             $script:Image[$i] = $Obj[$i]
