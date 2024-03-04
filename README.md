@@ -1,6 +1,5 @@
 # PwshPaint
 
-[![Build](https://img.shields.io/github/actions/workflow/status/ShaunLawrie/PwshPaint/test.yml)](https://github.com/ShaunLawrie/PwshPaint/actions/workflows/test.yml)
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/PwshPaint)](https://www.powershellgallery.com/packages/PwshPaint)
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/PwshPaint)](https://www.powershellgallery.com/packages/PwshPaint)
 [![GitHub license](https://img.shields.io/github/license/ShaunLawrie/PwshPaint)](https://github.com/ShaunLawrie/PwshPaint/blob/main/LICENSE)
